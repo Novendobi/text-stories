@@ -1,0 +1,6 @@
+moviepy==1.0.3
+Pillow==10.4.0
+numpy>=1.26.0
+imageio[ffmpeg]>=2.31.0
+pilmoji>=2.0.0
+emoji==1.7.0

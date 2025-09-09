@@ -1,0 +1,40 @@
+{
+  "me": "Amaka",
+  "title": "Chinedu",
+  "type": "direct",
+  "contact": "Chinedu",
+  "messages": [
+    { "sender": "Amaka", "text": "Why did my card get charged at 1:13am at Eko Lounge when you said you were home? 🤨" },
+    { "sender": "Chinedu", "text": "That has to be a mistake. I was sleeping." },
+    { "sender": "Amaka", "text": "Zenith debit alert doesn’t ‘mistake’. ₦24,500 — tip included." },
+    { "sender": "Chinedu", "text": "I helped Femi. He forgot his wallet. I just dropped my card, left." },
+    { "sender": "Amaka", "text": "At 1am, when you said you were too tired to step out?" },
+    { "sender": "Chinedu", "text": "He begged. I didn’t stay." },
+    { "sender": "Amaka", "text": "Your IG location tag says ‘Eko Lounge Rooftop’ at 1:21am. You left it public." },
+    { "sender": "Chinedu", "text": "That post was earlier this week. Auto-save glitch." },
+    { "sender": "Amaka", "text": "My friend saw you dancing with Ada." },
+    { "sender": "Chinedu", "text": "I greeted her and left. Nothing happened." },
+    { "sender": "Amaka", "text": "Bolt receipt: drop-off ‘Adeola Odeku — Block C’. That’s her compound." },
+    { "sender": "Chinedu", "text": "We shared a ride. She was stranded." },
+
+    { "sender": "Ada", "text": "He told me you two were ‘on a break.’ I asked twice." },
+    { "sender": "Amaka", "text": "We weren’t. Thanks for telling me, Ada." },
+
+    { "sender": "Chinedu", "text": "Don’t bring her into this. Talk to me." },
+    { "sender": "Amaka", "text": "She messaged me. And she says you told her ‘on a break.’" },
+    { "sender": "Chinedu", "text": "I panicked. I’m sorry. It was one time." },
+    { "sender": "Amaka", "text": "This isn’t about ₦24,500. It’s respect. You used my card to cheat." },
+    { "sender": "Chinedu", "text": "We haven’t been okay. I felt distant." },
+    { "sender": "Amaka", "text": "Distance is a conversation. Cheating is a choice." },
+    { "sender": "Chinedu", "text": "Please, one chance. I’ll come now. We can talk." },
+    { "sender": "Amaka", "text": "Transfer the money tonight. Return my key tomorrow by 10am." },
+    { "sender": "Chinedu", "text": "After three years, just like that?" },
+    { "sender": "Amaka", "text": "After 1:13am at Eko Lounge, yes. We’re done." }
+  ],
+  "pitch": "Hook: Debit alert at 1:13am exposes a secret night out. Escalation: IG timestamp, ride receipt, and the other woman’s DM confirm the lie. Resolution: refund + key return — clean break.",
+  "hashtags": [
+    "#TextStory", "#iMessage", "#ChatStory", "#Breakup", "#RelationshipDrama",
+    "#Receipts", "#POV", "#NaijaTok", "#Lagos", "#PlotTwist",
+    "#FYP", "#Viral", "#Trust", "#Cheating", "#StoryTime"
+  ]
+}
