@@ -8,83 +8,56 @@ import re
 import os
 import json
 import argparse
-try:
-    from pilmoji import Pilmoji
-    # Try optional sources if they exist in this Pilmoji version
-    try:
-        from pilmoji.source import EmojiFontSource  # accepts a font path
-    except Exception:
-        EmojiFontSource = None
-    try:
-        from pilmoji.source import NotoEmojiSource
-    except Exception:
-        NotoEmojiSource = None
-    try:
-        from pilmoji.source import AppleEmojiSource
-    except Exception:
-        AppleEmojiSource = None
-    PILMOJI_AVAILABLE = True
-except Exception as e:
-    print(f"Pilmoji import failed: {e!r}")
-    Pilmoji = None
-    EmojiFontSource = None
-    NotoEmojiSource = None
-    AppleEmojiSource = None
-    PILMOJI_AVAILABLE = False
-
-# Try to locate a local color emoji font (Linux/macOS paths)
-# Allow override via env var
-ENV_EMOJI_FONT = os.environ.get("EMOJI_FONT_PATH")
-
-EMOJI_FONT_CANDIDATES = [
-    ENV_EMOJI_FONT,
-    "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",            # Ubuntu/Debian
-    "/usr/share/fonts/noto/NotoColorEmoji.ttf",
-    "/usr/share/fonts/emoji/NotoColorEmoji.ttf",
-    "/usr/local/share/fonts/NotoColorEmoji.ttf",
-    "/System/Library/Fonts/Apple Color Emoji.ttc",                  # macOS
-    "/System/Library/Fonts/Apple Color Emoji.ttf",                  # macOS alt
-]
-EMOJI_FONT_PATH = next((p for p in EMOJI_FONT_CANDIDATES if p and os.path.exists(p)), None)
 
 # Video settings
 WIDTH, HEIGHT = 720, 1280
-# Layout constants (proper iPhone 15 look)
-STATUS_BAR_H = 54  # Increased for proper spacing
-HEADER_H = 88      # Increased for proper header
+# Layout constants (iPhone 15 Pro dimensions and spacing)
+STATUS_BAR_H = 59  # iPhone 15 Pro status bar height
+HEADER_H = 96      # Proper header height for navigation
 CHAT_TOP_Y = STATUS_BAR_H + HEADER_H
-TOP_PADDING = 16
-BOTTOM_SAFE = 34
-INPUT_BAR_H = 44   # Minimum iOS input bar height
-KEYBOARD_H = 291   # Standard iOS keyboard height
+TOP_PADDING = 12
+BOTTOM_SAFE = 34   # iPhone 15 home indicator area
+INPUT_BAR_H = 44   
+KEYBOARD_H = 291   
 
-# Dark mode colors (exact iOS values)
-CHAT_BG = (0, 0, 0)
-BLUE = (0, 122, 255)  # More accurate iOS blue
-GREY = (58, 58, 60)   # System gray 5
+# iPhone 15 Dark Mode colors (exact iOS 17 values)
+CHAT_BG = (0, 0, 0)            # True black for OLED
+BLUE = (0, 122, 255)           # iOS system blue
+GREY = (48, 48, 50)            # Message bubble grey (darker)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 TEXT_DARK = (255, 255, 255)
-TEXT_SUBTLE = (152, 152, 157)  # System gray 2
-NAV_BG = (28, 28, 30)  # System gray 6
-SEPARATOR = (56, 56, 58)
-KEYBOARD_BG = (0, 0, 0)  # Pure black like iOS
-KEY_FILL = (77, 77, 79)
-KEY_HL = (166, 166, 171)
-INPUT_BG = (38, 38, 40)  # Darker input background
+TEXT_SUBTLE = (142, 142, 147)  # iOS secondary label
+NAV_BG = (28, 28, 30)          # Navigation bar background
+SEPARATOR = (38, 38, 40)       # Subtle separators
+KEYBOARD_BG = (0, 0, 0)        
+KEY_FILL = (84, 84, 88)        # Key background
+KEY_HL = (99, 99, 102)         # Key highlight
+INPUT_BG = (58, 58, 60)        # Input field background
 
-# Typography - more iOS-like sizing
+# Typography - iPhone 15 system fonts
 try:
-    FONT = ImageFont.truetype("/usr/share/fonts/truetype/ubuntu/UbuntuSans[wdth,wght].ttf", 34)  # Smaller
-    SMALL_FONT = ImageFont.truetype("/usr/share/fonts/truetype/ubuntu/UbuntuSans[wdth,wght].ttf", 28)
-    TIME_FONT = ImageFont.truetype("/usr/share/fonts/truetype/ubuntu/UbuntuSans[wdth,wght].ttf", 32)  # Time font
+    # Try SF Pro Display equivalent
+    FONT = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 34)
+    SMALL_FONT = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 28)
+    TIME_FONT = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 32)
+    HEADER_FONT = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 38)
 except Exception:
-    FONT = ImageFont.load_default()
-    SMALL_FONT = ImageFont.load_default()
-    TIME_FONT = ImageFont.load_default()
+    try:
+        # Fallback to Ubuntu fonts but larger for iPhone feel
+        FONT = ImageFont.truetype("/usr/share/fonts/truetype/ubuntu/UbuntuSans[wdth,wght].ttf", 36)
+        SMALL_FONT = ImageFont.truetype("/usr/share/fonts/truetype/ubuntu/UbuntuSans[wdth,wght].ttf", 30)
+        TIME_FONT = ImageFont.truetype("/usr/share/fonts/truetype/ubuntu/UbuntuSans[wdth,wght].ttf", 34)
+        HEADER_FONT = ImageFont.truetype("/usr/share/fonts/truetype/ubuntu/UbuntuSans[wdth,wght].ttf", 40)
+    except Exception:
+        FONT = ImageFont.load_default()
+        SMALL_FONT = ImageFont.load_default()
+        TIME_FONT = ImageFont.load_default()
+        HEADER_FONT = ImageFont.load_default()
 
 # Random battery level (generated once per run)
 BATTERY_LEVEL = random.randint(15, 100)
+NETWORK_TYPE = "5G"  # Static network type for realism
 
 ME_NAME = "Alex"  # default; can be overridden by CLI or script file
 DEFAULT_SCRIPT = "examples/chat.json"
@@ -138,7 +111,7 @@ def parse_args():
     return p.parse_args()
 
 def draw_status_bar(draw):
-    """Minimal status bar: show current time only (clean iOS-like)."""
+    """iPhone 15 Pro status bar with pixel-perfect iOS accuracy."""
     def current_time_str():
         now = datetime.datetime.now()
         try:
@@ -146,38 +119,128 @@ def draw_status_bar(draw):
         except Exception:
             return now.strftime("%I:%M").lstrip("0")
     time_str = current_time_str()
-    time_width = draw.textlength(time_str, font=TIME_FONT)
-    time_x = (WIDTH - time_width) // 2
-    draw.text((time_x, 8), time_str, font=TIME_FONT, fill=WHITE)
 
-def draw_header(draw, title="Sam"):
-    """Draw conversation header with proper spacing."""
+    # Time on left
+    draw.text((24, 16), time_str, font=TIME_FONT, fill=WHITE)
+
+    # Dynamic Island (more accurate)
+    island_width = 108
+    island_height = 34
+    island_x = (WIDTH - island_width) // 2
+    island_y = 12
+    draw.rounded_rectangle([island_x, island_y, island_x + island_width, island_y + island_height],
+                           island_height // 2, fill=(18, 18, 18))
+
+    # --- Status icons on the same baseline ---
+    baseline_y = 22  # Common baseline for all status elements
+
+    # Battery (right-aligned)
+    right_margin = 18
+    battery_width = 26
+    battery_height = 13
+    battery_x = WIDTH - right_margin - battery_width
+    battery_y = baseline_y - battery_height//2  # Center on baseline
+    
+    # Battery outline
+    draw.rounded_rectangle([battery_x, battery_y, battery_x + battery_width, battery_y + battery_height],
+                           3, fill=None, outline=WHITE, width=1)
+    draw.rectangle([battery_x + battery_width, battery_y + 4, 
+                  battery_x + battery_width + 2, battery_y + battery_height - 4], fill=WHITE)
+    
+    # Battery fill
+    fill_width = int((battery_width - 4) * (BATTERY_LEVEL / 100))
+    fill_color = (52, 199, 89) if BATTERY_LEVEL > 20 else (255, 59, 48)
+    if fill_width > 0:
+        draw.rounded_rectangle([battery_x + 2, battery_y + 2, 
+                              battery_x + 2 + fill_width, battery_y + battery_height - 2],
+                               2, fill=fill_color)
+
+    # 5G text - aligned on same baseline
+    network_type = "5G"
+    netw_w = draw.textlength(network_type, font=SMALL_FONT)
+    # Calculate vertical position to align with baseline
+    bbox = SMALL_FONT.getbbox(network_type)
+    network_height = bbox[3] - bbox[1]
+    network_x = battery_x - 10 - netw_w
+    network_y = baseline_y - network_height + 6  # Adjust to match baseline
+    draw.text((network_x, network_y), network_type, font=SMALL_FONT, fill=WHITE)
+
+    # Signal bars - aligned with 5G text
+    bars_right = network_x - 8
+    bar_width = 3
+    bar_gap = 4
+    bar_max_height = 14  # Maximum height of signal bars
+    
+    for i in range(4):  # iPhone 15 has 4 signal bars
+        bar_height = 6 + i * 3 if i < 3 else 14  # Last bar is tallest
+        bar_x = bars_right - (4 - i) * (bar_width + bar_gap)
+        # Align bottoms of bars with baseline
+        bar_y = baseline_y - bar_height + 7  # Adjustment to align with baseline
+        fill_color = WHITE if i < 3 else (152, 152, 157)  # Last bar dimmed
+        draw.rectangle([bar_x, bar_y, bar_x + bar_width, bar_y + bar_height], fill=fill_color)
+        draw.rounded_rectangle([bar_x, bar_y, bar_x + bar_width, bar_y + 2], 1, fill=fill_color)
+
+def draw_header(draw, title="Messages"):
+    """iPhone 15 Messages app header with realistic design."""
     y0 = STATUS_BAR_H
     
     # Header background
     draw.rectangle([0, y0, WIDTH, y0 + HEADER_H], fill=NAV_BG)
     
-    # Back button (left)
+    # Back button
     back_x = 16
-    back_y = y0 + (HEADER_H - 32) // 2
-    # Chevron
-    draw.polygon([(back_x + 12, back_y + 8), (back_x + 4, back_y + 16), (back_x + 12, back_y + 24)], 
-                 fill=BLUE)
-    # "Messages" text
-    draw.text((back_x + 24, back_y - 2), "Messages", font=SMALL_FONT, fill=BLUE)
+    back_y = y0 + HEADER_H/2
+    draw.line([(back_x + 10, back_y - 9), (back_x + 2, back_y)], fill=BLUE, width=2)
+    draw.line([(back_x + 2, back_y), (back_x + 10, back_y + 9)], fill=BLUE, width=2)
     
-    # Title (centered)
-    title_width = draw.textlength(title, font=FONT)
+    # Avatar with perfectly centered initials
+    avatar_size = 40
+    avatar_x = (WIDTH - avatar_size) // 2
+    avatar_y = y0 + 14
+    avatar_color = (72, 72, 74)
+    
+    # Draw avatar circle
+    draw.ellipse([avatar_x, avatar_y, avatar_x + avatar_size, avatar_y + avatar_size], fill=avatar_color)
+    
+    # Extract first letters of words in title, max 2 letters
+    initials = "".join(word[0] for word in title.split()[:2] if word).upper()
+    if not initials:
+        initials = "?"
+    
+    # Precisely position the text in the center of the circle
+    initials_width = draw.textlength(initials, font=FONT)
+    
+    # Use proper text bbox calculation for vertical centering
+    bbox = FONT.getbbox(initials)
+    initials_height = bbox[3] - bbox[1] if bbox else 0
+    text_ascent = bbox[1] if bbox else 0
+    
+    # Center horizontally and vertically (accounting for font metrics)
+    initials_x = avatar_x + (avatar_size - initials_width) // 2
+    # The -2 adjustment fine-tunes vertical alignment based on how SF Pro renders
+    initials_y = avatar_y + (avatar_size - initials_height) // 2 - text_ascent - 2
+    
+    draw.text((initials_x, initials_y), initials, font=FONT, fill=WHITE)
+    
+    # Contact name below avatar
+    title_width = draw.textlength(title, font=SMALL_FONT)
     title_x = (WIDTH - title_width) // 2
-    draw.text((title_x, y0 + (HEADER_H - 34) // 2), title, font=FONT, fill=WHITE)
+    draw.text((title_x, avatar_y + avatar_size + 8), title, font=SMALL_FONT, fill=WHITE)
     
-    # Info button (right)
-    info_x = WIDTH - 44
-    info_y = y0 + (HEADER_H - 28) // 2
-    draw.ellipse([info_x, info_y, info_x + 28, info_y + 28], outline=BLUE, width=2)
-    # "i" centered in circle
-    i_width = draw.textlength("i", font=SMALL_FONT)
-    draw.text((info_x + (28 - i_width) // 2, info_y + 2), "i", font=SMALL_FONT, fill=BLUE)
+    # Call and Video icons (right side) - accurate iOS style
+    video_x = WIDTH - 52
+    video_y = y0 + HEADER_H/2 - 16
+    draw.rounded_rectangle([video_x, video_y, video_x + 28, video_y + 32], 8, fill=BLUE)
+    draw.ellipse([video_x + 10, video_y + 8, video_x + 18, video_y + 16], fill=NAV_BG)
+    draw.ellipse([video_x + 20, video_y + 8, video_x + 22, video_y + 10], fill=(52, 199, 89))
+    phone_x = WIDTH - 104
+    phone_y = y0 + HEADER_H/2 - 16
+    draw.ellipse([phone_x, phone_y, phone_x + 32, phone_y + 32], fill=BLUE)
+    ph_x, ph_y = phone_x + 16, phone_y + 16
+    draw.rounded_rectangle([ph_x - 5, ph_y - 10, ph_x + 5, ph_y - 6], 2, fill=NAV_BG)
+    draw.line([ph_x, ph_y - 6, ph_x, ph_y + 4], fill=NAV_BG, width=3)
+    draw.rounded_rectangle([ph_x - 5, ph_y + 4, ph_x + 5, ph_y + 8], 2, fill=NAV_BG)
+    draw.line([0, y0 + HEADER_H - 1, WIDTH, y0 + HEADER_H - 1], fill=SEPARATOR, width=1)
 
 def compute_group_title(participants):
     others = [p for p in participants if p != ME_NAME]
@@ -190,20 +253,13 @@ def compute_group_title(participants):
 
 _EMOJI_REGEX = re.compile(r"[\U0001F000-\U0001FAFF\U00002700-\U000027BF\U0001F900-\U0001F9FF]")
 
-def _approx_textlength(draw, text, font):
-    # Replace emoji with two 'M' characters to approximate width
-    if not text:
-        return 0
-    approximated = _EMOJI_REGEX.sub("MM", text)
-    return draw.textlength(approximated, font=font)
-
 def wrap_text(draw, text, max_width):
     lines = []
     words = text.split(" ")
     line = ""
     for w in words:
         test = (line + " " + w).strip()
-        if _approx_textlength(draw, test, FONT) <= max_width:
+        if draw.textlength(test, font=FONT) <= max_width:
             line = test
         else:
             if line:
@@ -214,51 +270,52 @@ def wrap_text(draw, text, max_width):
     return lines
 
 def bubble_size(draw, text, max_width):
-    padding = 16
+    padding = 18  # iPhone 15 bubble padding
     lines = wrap_text(draw, text, max_width)
     text_width = max(draw.textlength(l, font=FONT) for l in lines) if lines else 0
-    text_height = max(1, len(lines)) * 42  # Tighter line spacing
+    text_height = max(1, len(lines)) * 44  # iPhone line height
     return (text_width + padding * 2, text_height + padding * 2, lines)
 
 def draw_bubble(img, draw, text, side, y_offset, name=None, max_width=None, clip_top=None):
-    padding = 16
-    max_width = max_width or (WIDTH - 100)  # More generous width
+    padding = 18
+    max_width = max_width or (WIDTH - 120)  # More realistic max width
     bubble_w, bubble_h, lines = bubble_size(draw, text, max_width)
     
     if side == "left":
-        x0 = 16
+        x0 = 20  # More spacing from edge
         color = GREY
         txt_color = TEXT_DARK
     else:
-        x0 = WIDTH - bubble_w - 16
+        x0 = WIDTH - bubble_w - 20
         color = BLUE
         txt_color = WHITE
     
     y0 = y_offset
 
-    # Name label for group chats
+    # Name label for group chats (smaller, more subtle)
     if name and side == "left":
-        name_y = y0 - 28
+        name_y = y0 - 26
         if clip_top is None or name_y >= clip_top:
-            draw.text((x0 + 6, name_y), name, font=SMALL_FONT, fill=TEXT_SUBTLE)
+            draw.text((x0 + 8, name_y), name, font=SMALL_FONT, fill=TEXT_SUBTLE)
 
-    # Bubble with proper iOS radius
-    draw.rounded_rectangle([x0, y0, x0 + bubble_w, y0 + bubble_h], 20, fill=color)
+    # iPhone 15 bubble style with proper radius
+    radius = 22  # iPhone bubble radius
+    draw.rounded_rectangle([x0, y0, x0 + bubble_w, y0 + bubble_h], radius, fill=color)
     
-    # Tail (smaller and more subtle)
+    # Tail (more subtle and iPhone-like)
     if side == "left":
-        tail = [(x0 + 12, y0 + bubble_h - 6), (x0 - 4, y0 + bubble_h + 6), (x0 + 12, y0 + bubble_h - 18)]
-        draw.polygon(tail, fill=color)
+        tail_points = [(x0 + 16, y0 + bubble_h - 8), (x0 - 6, y0 + bubble_h + 4), (x0 + 16, y0 + bubble_h - 20)]
+        draw.polygon(tail_points, fill=color)
     else:
         x1 = x0 + bubble_w
-        tail = [(x1 - 12, y0 + bubble_h - 6), (x1 + 4, y0 + bubble_h + 6), (x1 - 12, y0 + bubble_h - 18)]
-        draw.polygon(tail, fill=color)
+        tail_points = [(x1 - 16, y0 + bubble_h - 8), (x1 + 6, y0 + bubble_h + 4), (x1 - 16, y0 + bubble_h - 20)]
+        draw.polygon(tail_points, fill=color)
 
-    # Text
+    # Text with proper line spacing
     y_text = y0 + padding
     for l in lines:
-        draw_text_with_emoji(img, draw, (x0 + padding, y_text), l, FONT, txt_color)
-        y_text += 42
+        draw.text((x0 + padding, y_text), l, font=FONT, fill=txt_color)
+        y_text += 44
 
     return bubble_w, bubble_h
 
@@ -267,10 +324,26 @@ def draw_chat_base(draw, title="Chat"):
     draw_header(draw, title=title)
 
 def draw_home_indicator(draw):
-    # iPhone home indicator
+    """iPhone 15 home indicator with realistic blur and shadow."""
     cx = WIDTH // 2
-    y = HEIGHT - 20
-    draw.rounded_rectangle([cx - 67, y - 2, cx + 67, y + 2], 2, fill=(134, 134, 139))
+    y = HEIGHT - 18
+    indicator_width = 134
+    indicator_height = 5
+
+    # Subtle blurred/gradient background at bottom
+    for i in range(24):
+        alpha = int(255 * (1 - i / 24) * 0.10)
+        color = (28, 28, 30, alpha)
+        draw.rectangle([0, HEIGHT - 24 + i, WIDTH, HEIGHT - 24 + i + 1], fill=color)
+
+    # Home indicator pill with subtle drop shadow
+    shadow_color = (50, 50, 55)
+    draw.rounded_rectangle([cx - indicator_width//2, y - indicator_height//2 + 1,
+                            cx + indicator_width//2, y + indicator_height//2 + 1],
+                           indicator_height//2 + 1, fill=shadow_color)
+    draw.rounded_rectangle([cx - indicator_width//2, y - indicator_height//2,
+                            cx + indicator_width//2, y + indicator_height//2],
+                           indicator_height//2, fill=(200, 200, 205))
 
 MAX_INPUT_LINES = 6
 INPUT_SIDE_MARGIN = 12
@@ -327,110 +400,69 @@ def compute_input_layout(draw, text):
     }
 
 def draw_input_bar(img, draw, text):
-    """Draw input bar above keyboard with multi-line growth and wrapping."""
+    """iPhone 15 style input bar with proper styling."""
     layout = compute_input_layout(draw, text or "")
     bar_y = layout["bar_y"]
     bar_h = layout["bar_h"]
     field_width = layout["field_width"]
     lines = layout["text_lines"]
 
-    # Background strip behind the input
-    draw.rectangle([0, bar_y - 8, WIDTH, bar_y + bar_h + 8], fill=KEYBOARD_BG)
+    # Background strip
+    draw.rectangle([0, bar_y - 12, WIDTH, bar_y + bar_h + 12], fill=KEYBOARD_BG)
 
-    # Input field
-    margin = INPUT_SIDE_MARGIN
+    # Input field with iPhone 15 styling
+    margin = 16
+    field_radius = 25  # More rounded like iOS
+    
     draw.rounded_rectangle([margin, bar_y, margin + field_width, bar_y + bar_h],
-                          22, fill=INPUT_BG, outline=(58, 58, 60), width=1)
+                          field_radius, fill=INPUT_BG)
 
-    # Camera/plus icon inside field
-    icon_x = margin + 12
-    icon_y = bar_y + 12
-    draw.ellipse([icon_x, icon_y, icon_x + 24, icon_y + 24], outline=(142, 142, 147), width=2)
-    draw.line([icon_x + 12, icon_y + 6, icon_x + 12, icon_y + 18], fill=(142, 142, 147), width=2)
-    draw.line([icon_x + 6, icon_y + 12, icon_x + 18, icon_y + 12], fill=(142, 142, 147), width=2)
+    # Plus icon (more iOS-like)
+    icon_x = margin + 16
+    icon_y = bar_y + (bar_h - 28) // 2
+    icon_size = 28
+    
+    # Plus icon circle
+    draw.ellipse([icon_x, icon_y, icon_x + icon_size, icon_y + icon_size], 
+                outline=(142, 142, 147), width=2)
+    
+    # Plus symbol
+    plus_center_x = icon_x + icon_size // 2
+    plus_center_y = icon_y + icon_size // 2
+    draw.line([plus_center_x - 6, plus_center_y, plus_center_x + 6, plus_center_y], 
+             fill=(142, 142, 147), width=2)
+    draw.line([plus_center_x, plus_center_y - 6, plus_center_x, plus_center_y + 6], 
+             fill=(142, 142, 147), width=2)
 
-    # Send button (right, vertically centered)
-    send_x = WIDTH - margin - 44
-    send_y = bar_y + (bar_h - 44) // 2
-    draw.ellipse([send_x, send_y, send_x + 44, send_y + 44], fill=BLUE)
+    # Send button (iPhone 15 style)
+    send_size = 36
+    send_x = WIDTH - margin - send_size - 8
+    send_y = bar_y + (bar_h - send_size) // 2
+    
+    # Send button circle
+    draw.ellipse([send_x, send_y, send_x + send_size, send_y + send_size], fill=BLUE)
 
-    # Up arrow (send icon)
-    arrow_x = send_x + 22
-    arrow_y = send_y + 12
-    draw.polygon([(arrow_x, arrow_y), (arrow_x - 6, arrow_y + 8), (arrow_x - 2, arrow_y + 8),
-                  (arrow_x - 2, arrow_y + 20), (arrow_x + 2, arrow_y + 20), (arrow_x + 2, arrow_y + 8),
-                  (arrow_x + 6, arrow_y + 8)], fill=WHITE)
+    # Up arrow (more refined)
+    arrow_center_x = send_x + send_size // 2
+    arrow_center_y = send_y + send_size // 2
+    arrow_points = [
+        (arrow_center_x, arrow_center_y - 8),
+        (arrow_center_x - 6, arrow_center_y - 2),
+        (arrow_center_x - 2, arrow_center_y - 2),
+        (arrow_center_x - 2, arrow_center_y + 8),
+        (arrow_center_x + 2, arrow_center_y + 8),
+        (arrow_center_x + 2, arrow_center_y - 2),
+        (arrow_center_x + 6, arrow_center_y - 2)
+    ]
+    draw.polygon(arrow_points, fill=WHITE)
 
-    # Draw wrapped text lines inside field
+    # Text with proper positioning
     if lines:
-        text_x = margin + INPUT_FIELD_LEFT_ICON_W + INPUT_INNER_PAD_X
-        text_y = bar_y + INPUT_INNER_PAD_Y
+        text_x = margin + 56  # Account for plus icon
+        text_y = bar_y + (bar_h - len(lines) * 36) // 2 + 6
         for l in lines:
-            draw_text_with_emoji(img, draw, (text_x, text_y), l, FONT, WHITE)
-            text_y += INPUT_LINE_HEIGHT
-
-EMOJI_WARNED = False
-EMOJI_LOGGED = False
-
-def draw_text_with_emoji(img, draw, pos, text, font, fill):
-    global EMOJI_WARNED, EMOJI_LOGGED
-    # Ensure integer coordinates for PIL/Pilmoji paste
-    try:
-        x, y = pos
-        pos = (int(round(x)), int(round(y)))
-    except Exception:
-        pass
-    if PILMOJI_AVAILABLE:
-        # Prefer a concrete local emoji font source
-        if EmojiFontSource and EMOJI_FONT_PATH:
-            try:
-                if not EMOJI_LOGGED:
-                    print(f"Using EmojiFontSource: {EMOJI_FONT_PATH}")
-                    EMOJI_LOGGED = True
-                with Pilmoji(img, source=EmojiFontSource(EMOJI_FONT_PATH)) as pilmoji:
-                    pilmoji.text(pos, text, font=font, fill=fill)
-                    return
-            except Exception:
-                # Fall back to default pilmoji behavior
-                if not EMOJI_WARNED:
-                    print("Failed to use EmojiFontSource, falling back to other sources.")
-                pass
-        # Try built-in sources when present
-        try:
-            if NotoEmojiSource:
-                if not EMOJI_LOGGED:
-                    print("Using NotoEmojiSource()")
-                    EMOJI_LOGGED = True
-                with Pilmoji(img, source=NotoEmojiSource()) as pilmoji:
-                    pilmoji.text(pos, text, font=font, fill=fill)
-                    return
-        except Exception:
-            pass
-        try:
-            if AppleEmojiSource:
-                if not EMOJI_LOGGED:
-                    print("Using AppleEmojiSource()")
-                    EMOJI_LOGGED = True
-                with Pilmoji(img, source=AppleEmojiSource()) as pilmoji:
-                    pilmoji.text(pos, text, font=font, fill=fill)
-                    return
-        except Exception:
-            pass
-        if not EMOJI_LOGGED:
-            print("Using Pilmoji default source (may require network).")
-            EMOJI_LOGGED = True
-        with Pilmoji(img) as pilmoji:
-            pilmoji.text(pos, text, font=font, fill=fill)
-            return
-    # Fallback without pilmoji
-    if _EMOJI_REGEX.search(text) and not EMOJI_WARNED:
-        print("Emoji still missing. Debug:")
-        print(f"  PILMOJI_AVAILABLE={PILMOJI_AVAILABLE}")
-        print(f"  EmojiFontSource={'yes' if EmojiFontSource else 'no'}")
-        print(f"  EMOJI_FONT_PATH={EMOJI_FONT_PATH}")
-        print("  Hint: set EMOJI_FONT_PATH=/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf")
-        EMOJI_WARNED = True
-    draw.text(pos, text, font=font, fill=fill)
+            draw.text((text_x, text_y), l, font=FONT, fill=WHITE)
+            text_y += 36
 
 # Updated keyboard layout with proper positioning
 KEY_ROWS = [
@@ -479,8 +511,7 @@ def _compute_key_positions():
     # Space row
     space_y = y + key_height + row_spacing
     positions['123'] = (16, space_y, 90, space_y + key_height)
-    positions['emoji'] = (98, space_y, 164, space_y + key_height)
-    positions[' '] = (172, space_y, WIDTH - 172, space_y + key_height)
+    positions[' '] = (98, space_y, WIDTH - 172, space_y + key_height)
     positions['return'] = (WIDTH - 164, space_y, WIDTH - 16, space_y + key_height)
     
     return positions, kb_top
@@ -488,72 +519,71 @@ def _compute_key_positions():
 KEY_POSITIONS, KB_TOP = _compute_key_positions()
 
 def draw_keyboard(draw, highlight=None):
-    """Draw iOS-style keyboard."""
+    """iPhone 15 style keyboard with proper key styling."""
     # Keyboard background
     draw.rectangle([0, KB_TOP, WIDTH, HEIGHT], fill=KEYBOARD_BG)
     
-    # Draw all keys
+    # Draw all keys with iPhone 15 styling
     for key_name, (x0, y0, x1, y1) in KEY_POSITIONS.items():
         if key_name.islower():
             continue
             
-        # Key highlight
+        # Key styling
         fill_color = KEY_FILL
         if highlight and (key_name == highlight or key_name.lower() == highlight.lower()):
             fill_color = KEY_HL
             
-        # Key background
-        draw.rounded_rectangle([x0, y0, x1, y1], 8, fill=fill_color)
+        # Key background with proper radius
+        key_radius = 10  # iPhone key radius
+        draw.rounded_rectangle([x0, y0, x1, y1], key_radius, fill=fill_color)
         
-        # Key labels
+        # Subtle key shadow (bottom edge)
+        shadow_color = (20, 20, 22)
+        draw.rounded_rectangle([x0, y1 - 2, x1, y1], key_radius, fill=shadow_color)
+        draw.rounded_rectangle([x0, y0, x1, y1 - 2], key_radius, fill=fill_color)
+        
+        # Key labels with proper positioning
         label_x = (x0 + x1) // 2
-        label_y = (y0 + y1) // 2 - 14
+        label_y = (y0 + y1) // 2 - 16
         
         if key_name == 'shift':
-            # Shift arrow
-            draw.polygon([(label_x, label_y + 8), (label_x - 8, label_y + 16), 
-                         (label_x - 4, label_y + 16), (label_x - 4, label_y + 20),
-                         (label_x + 4, label_y + 20), (label_x + 4, label_y + 16), 
-                         (label_x + 8, label_y + 16)], fill=WHITE)
+            # Shift arrow (more iOS-like)
+            arrow_points = [
+                (label_x, label_y + 6),
+                (label_x - 8, label_y + 14),
+                (label_x - 4, label_y + 14),
+                (label_x - 4, label_y + 22),
+                (label_x + 4, label_y + 22),
+                (label_x + 4, label_y + 14),
+                (label_x + 8, label_y + 14)
+            ]
+            draw.polygon(arrow_points, fill=WHITE)
         elif key_name == 'delete':
-            # Delete icon (backspace)
-            draw.polygon([(label_x - 8, label_y + 12), (label_x - 4, label_y + 8), 
-                         (label_x + 8, label_y + 8), (label_x + 8, label_y + 16), 
-                         (label_x - 4, label_y + 16)], fill=WHITE)
+            # Delete icon (backspace - more refined)
+            delete_points = [
+                (label_x - 10, label_y + 14),
+                (label_x - 6, label_y + 10),
+                (label_x + 8, label_y + 10),
+                (label_x + 8, label_y + 18),
+                (label_x - 6, label_y + 18)
+            ]
+            draw.polygon(delete_points, fill=WHITE)
+            # X mark in delete key
+            draw.line([label_x - 2, label_y + 12, label_x + 4, label_y + 16], fill=KEYBOARD_BG, width=2)
+            draw.line([label_x + 4, label_y + 12, label_x - 2, label_y + 16], fill=KEYBOARD_BG, width=2)
         elif key_name == '123':
-            draw.text((label_x - 16, label_y), "123", font=SMALL_FONT, fill=WHITE)
-        elif key_name == 'emoji':
-            # Better emoji face
-            face_size = 20
-            face_x = label_x - face_size//2
-            face_y = label_y + 8
-            
-            # Face outline
-            draw.ellipse([face_x, face_y, face_x + face_size, face_y + face_size], 
-                        outline=WHITE, width=2)
-            
-            # Eyes
-            eye_size = 3
-            left_eye_x = face_x + 5
-            right_eye_x = face_x + 12
-            eye_y = face_y + 6
-            draw.ellipse([left_eye_x, eye_y, left_eye_x + eye_size, eye_y + eye_size], fill=WHITE)
-            draw.ellipse([right_eye_x, eye_y, right_eye_x + eye_size, eye_y + eye_size], fill=WHITE)
-            
-            # Smile
-            smile_x = face_x + 6
-            smile_y = face_y + 10
-            smile_width = 8
-            smile_height = 6
-            draw.arc([smile_x, smile_y, smile_x + smile_width, smile_y + smile_height], 
-                    0, 180, fill=WHITE, width=2)
+            text_width = draw.textlength("123", font=SMALL_FONT)
+            draw.text((label_x - text_width // 2, label_y + 2), "123", font=SMALL_FONT, fill=WHITE)
         elif key_name == 'return':
-            draw.text((label_x - 24, label_y), "return", font=SMALL_FONT, fill=WHITE)
+            text_width = draw.textlength("return", font=SMALL_FONT)
+            draw.text((label_x - text_width // 2, label_y + 2), "return", font=SMALL_FONT, fill=WHITE)
         elif key_name == ' ':
-            # Space bar (no label needed)
-            pass
+            # Space bar gets "space" label
+            space_width = draw.textlength("space", font=SMALL_FONT)
+            draw.text((label_x - space_width // 2, label_y + 2), "space", 
+                     font=SMALL_FONT, fill=(160, 160, 165))
         else:
-            # Regular letter
+            # Regular letter keys
             text_width = draw.textlength(key_name, font=FONT)
             draw.text((label_x - text_width // 2, label_y), key_name, font=FONT, fill=WHITE)
 
@@ -573,29 +603,22 @@ def render_chat_frame(history, typing=None, title="Chat", input_text=None, highl
     else:
         viewport_bottom = HEIGHT - BOTTOM_SAFE - 16
     
-    # Calculate content height and scroll offset
+    # Simplified content height calculation - no redundant image creation
     content_bottom = CHAT_TOP_Y + TOP_PADDING
     for msg in history:
-        tmp_img = Image.new("RGB", (WIDTH, HEIGHT), CHAT_BG)
-        tmp_draw = ImageDraw.Draw(tmp_img)
-        bw, bh, _ = bubble_size(tmp_draw, msg['text'], WIDTH - 100)
-        content_bottom = max(content_bottom, msg['y'] + bh)
+        content_bottom = max(content_bottom, msg['y'] + msg.get('height', 60))
     
     if typing and typing.get('type') == 'dots':
         content_bottom = max(content_bottom, typing['y'] + 60)
     
     scroll_offset = max(0, content_bottom + 20 - viewport_bottom)
     
-    # Draw messages (cull outside viewport; clip name label above header)
+    # Draw messages (simplified culling)
     for msg in history:
         y_draw = msg['y'] - scroll_offset
-        # measure bubble for culling
-        tmp_img2 = Image.new("RGB", (WIDTH, HEIGHT), CHAT_BG)
-        tmp_draw2 = ImageDraw.Draw(tmp_img2)
-        bw2, bh2, _ = bubble_size(tmp_draw2, msg['text'], WIDTH - 100)
-        if y_draw + bh2 < content_top:
+        if y_draw > viewport_bottom + 100:  # Simple cull check
             continue
-        if y_draw > viewport_bottom:
+        if y_draw < content_top - 100:
             continue
         draw_bubble(img, draw, msg['text'], msg['side'], y_draw, name=msg.get('name'), clip_top=content_top)
     
@@ -623,49 +646,46 @@ def render_chat_frame(history, typing=None, title="Chat", input_text=None, highl
         draw_keyboard(draw, highlight=highlight_key)
     else:
         draw_home_indicator(draw)
-    # Finally, draw status/header on top to avoid any overlap
+    
     draw_chat_base(draw, title=title)
-
     return img
 
 def typing_indicator(name, y_offset=CHAT_TOP_Y + TOP_PADDING + 40, title="Chat", history=None):
-    """Typing dots animation."""
+    """Slightly slower typing dots animation."""
     history = history or []
     frames = []
-    for i in range(1, 4):
+    # Keep 2 frames but slightly longer duration
+    for i in range(1, 3):
         img = render_chat_frame(
             history,
             typing={"type": "dots", "name": name, "y": y_offset, "dots": i},
             title=title
         )
-        frames.append(ImageClip(np.array(img)).set_duration(0.4))
+        frames.append(ImageClip(np.array(img)).set_duration(0.5))  # Slower: 0.3 -> 0.5
     return concatenate_videoclips(frames)
 
 def typing_keyboard(text, title="Chat", history=None):
-    """Keyboard typing animation with better text handling."""
+    """Slightly slower keyboard typing animation for more realism."""
     history = history or []
     frames = []
     typed = ""
     
-    for char in text:
+    # Skip every other character but with slightly longer durations
+    for i, char in enumerate(text):
         typed += char
-        highlight = char if char in KEY_POSITIONS else None
-        
-        # Handle special characters for highlighting
-        if char == ' ':
-            highlight = ' '
-        elif char.isalpha():
-            highlight = char.upper()
-        elif char in '😳🙂😊😂🤔💭':  # Common emoji
-            highlight = 'emoji'
-        
-        img = render_chat_frame(history, title=title, input_text=typed, highlight_key=highlight)
-        duration = random.uniform(0.04, 0.08) if char.strip() else random.uniform(0.06, 0.12)
-        frames.append(ImageClip(np.array(img)).set_duration(duration))
+        if i % 2 == 0:  # Only animate every other character
+            highlight = None
+            if char == ' ':
+                highlight = ' '
+            elif char.isalpha():
+                highlight = char.upper()
+            
+            img = render_chat_frame(history, title=title, input_text=typed, highlight_key=highlight)
+            frames.append(ImageClip(np.array(img)).set_duration(0.08))  # Slightly slower: 0.05 -> 0.08
     
-    # Hold final frame
-    if frames:
-        frames[-1] = frames[-1].set_duration(frames[-1].duration + 0.3)
+    # Final frame with complete text (longer pause)
+    img = render_chat_frame(history, title=title, input_text=text)
+    frames.append(ImageClip(np.array(img)).set_duration(0.4))  # Longer pause: 0.2 -> 0.4
     
     return concatenate_videoclips(frames)
 
@@ -673,15 +693,20 @@ def main():
     global ME_NAME, dialogue
     args = parse_args()
 
+    print("Loading script and initializing...")
     script_me = script_title = script_type = script_contact = None
     if args.script:
+        print(f"Loading script from: {args.script}")
         script_me, script_title, loaded, script_type, script_contact = load_script(args.script)
         dialogue = loaded
+        print(f"Loaded {len(dialogue)} messages")
+    
     # Resolve ME_NAME priority: CLI > script > default
     if args.me:
         ME_NAME = args.me
     elif script_me:
         ME_NAME = script_me
+    print(f"Your name (blue bubbles): {ME_NAME}")
 
     # Determine conversation type and primary contact (for direct)
     chat_type = args.type or script_type
@@ -701,10 +726,13 @@ def main():
         if not contact:
             raise ValueError('For type=direct, could not infer contact (no non-me sender found). Provide --contact or set "contact" in script.')
         group_title = None
+        print(f"Chat type: Direct conversation with {contact}")
     else:
         # Group chat title
         participants = list(dict.fromkeys([n for n, _ in dialogue]))
         group_title = args.title or script_title or compute_group_title(participants)
+        print(f"Chat type: Group conversation - {group_title}")
+        print(f"Participants: {', '.join(participants)}")
 
     clips = []
     # Per-chat state for direct conversations
@@ -715,8 +743,12 @@ def main():
     def open_chat(title, history):
         # Show current chat view (with existing history) to simulate switching
         frame = render_chat_frame(history, title=title)
-        clips.append(ImageClip(np.array(frame)).set_duration(0.6))
+        clips.append(ImageClip(np.array(frame)).set_duration(0.3))  # Shorter duration
 
+    # Pre-calculate bubble sizes to avoid redundant calculations
+    print("Pre-calculating bubble sizes...")
+    bubble_cache = {}
+    
     if chat_type == 'direct':
         current_peer = contact
         # initialize state for the first peer if not exists
@@ -724,8 +756,12 @@ def main():
             chat_states[current_peer] = {"history": [], "y": CHAT_TOP_Y + TOP_PADDING + 40}
         history = chat_states[current_peer]["history"]
         y_offset = chat_states[current_peer]["y"]
+        print(f"Opening chat with {current_peer}")
         open_chat(current_peer, history)
-        for name, text in dialogue:
+        
+        for i, (name, text) in enumerate(dialogue, 1):
+            print(f"Processing message {i}/{len(dialogue)}: {name[:10]}...")
+            
             # Determine target peer for this message
             if name == ME_NAME:
                 target_peer = current_peer
@@ -736,6 +772,7 @@ def main():
 
             # Switch chats if needed
             if target_peer != current_peer:
+                print(f"Switching to chat with {target_peer}")
                 current_peer = target_peer
                 if current_peer not in chat_states:
                     chat_states[current_peer] = {"history": [], "y": CHAT_TOP_Y + TOP_PADDING + 40}
@@ -745,54 +782,82 @@ def main():
 
             # Typing animation
             if side == 'right':
+                print(f"  Rendering keyboard typing animation...")
                 clips.append(typing_keyboard(text, title=current_peer, history=history))
             else:
+                print(f"  Rendering typing dots animation...")
                 clips.append(typing_indicator(name, y_offset=y_offset, title=current_peer, history=history))
 
-            # Measure, append, render frame
-            tmp_img = Image.new("RGB", (WIDTH, HEIGHT), CHAT_BG)
-            tmp_draw = ImageDraw.Draw(tmp_img)
-            bubble_w, bubble_h, _ = bubble_size(tmp_draw, text, WIDTH - 100)
+            # Calculate bubble size once
+            if text not in bubble_cache:
+                tmp_img = Image.new("RGB", (WIDTH, HEIGHT), CHAT_BG)
+                tmp_draw = ImageDraw.Draw(tmp_img)
+                bubble_w, bubble_h, _ = bubble_size(tmp_draw, text, WIDTH - 100)
+                bubble_cache[text] = (bubble_w, bubble_h)
+            else:
+                bubble_w, bubble_h = bubble_cache[text]
 
             history.append({
                 "name": None,  # 1:1 chat: no left-side name label
                 "text": text,
                 "side": side,
-                "y": y_offset
+                "y": y_offset,
+                "height": bubble_h  # Cache height for performance
             })
+            print(f"  Rendering message frame...")
             frame_img = render_chat_frame(history, title=current_peer)
-            clips.append(ImageClip(np.array(frame_img)).set_duration(1.5))
+            clips.append(ImageClip(np.array(frame_img)).set_duration(0.8))  # Shorter duration
             y_offset += bubble_h + 24
             # persist updated y for this chat
             chat_states[current_peer]["y"] = y_offset
     else:
         # Group chat — single room, show names on left if >2 participants
         show_names = True if len(participants) > 2 else False
-        for name, text in dialogue:
+        print(f"Starting group chat rendering (show names: {show_names})")
+        
+        for i, (name, text) in enumerate(dialogue, 1):
+            print(f"Processing message {i}/{len(dialogue)}: {name[:10]}...")
+            
             side = 'right' if name == ME_NAME else 'left'
             if side == 'right':
+                print(f"  Rendering keyboard typing animation...")
                 clips.append(typing_keyboard(text, title=group_title, history=history))
             else:
+                print(f"  Rendering typing dots animation...")
                 clips.append(typing_indicator(name, y_offset=y_offset, title=group_title, history=history))
 
-            tmp_img = Image.new("RGB", (WIDTH, HEIGHT), CHAT_BG)
-            tmp_draw = ImageDraw.Draw(tmp_img)
-            bubble_w, bubble_h, _ = bubble_size(tmp_draw, text, WIDTH - 100)
+            # Calculate bubble size once
+            if text not in bubble_cache:
+                tmp_img = Image.new("RGB", (WIDTH, HEIGHT), CHAT_BG)
+                tmp_draw = ImageDraw.Draw(tmp_img)
+                bubble_w, bubble_h, _ = bubble_size(tmp_draw, text, WIDTH - 100)
+                bubble_cache[text] = (bubble_w, bubble_h)
+            else:
+                bubble_w, bubble_h = bubble_cache[text]
 
             history.append({
                 "name": (name if (side == 'left' and show_names) else None),
                 "text": text,
                 "side": side,
-                "y": y_offset
+                "y": y_offset,
+                "height": bubble_h  # Cache height for performance
             })
+            print(f"  Rendering message frame...")
             frame_img = render_chat_frame(history, title=group_title)
-            clips.append(ImageClip(np.array(frame_img)).set_duration(1.5))
+            clips.append(ImageClip(np.array(frame_img)).set_duration(0.8))  # Shorter duration
             y_offset += bubble_h + 24
 
-    # Render final video
+    # Render final video with lower quality for speed
+    print(f"\nCombining {len(clips)} video clips...")
     final = concatenate_videoclips(clips, method="compose")
-    final.write_videofile(args.output, fps=args.fps)
-    print(f"Video generated -> {args.output}")
+    
+    print(f"Encoding video to {args.output}...")
+    print("This may take a moment depending on video length...")
+    final.write_videofile(args.output, fps=args.fps, 
+                         codec='libx264', 
+                         preset='ultrafast',  # Fastest encoding
+                         ffmpeg_params=['-crf', '28'])  # Lower quality for speed
+    print(f"✅ Video generated successfully -> {args.output}")
 
 if __name__ == '__main__':
     main()
